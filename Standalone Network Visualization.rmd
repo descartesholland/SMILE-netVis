@@ -1,0 +1,24 @@
+---
+title: "Network Visualization"
+runtime: shiny
+output: html_document
+---
+
+```{r, echo=FALSE}
+setwd("C:\\Dropbox (Personal)\\Comp Sci\\UROP\\R")
+
+source("network_vis.R")
+network_vis(Null)
+library(shiny)
+
+#inputPanel(
+  fileInput('file1', 'Choose File1',
+                accept=c('text/csv', 
+								 'text/comma-separated-values,text/plain', 
+								 '.csv'))
+  selectInput("n_breaks", label = "Number of bins:",
+              choices = c(10, 20, 35, 50), selected = 20)
+#)
+
+```
+
