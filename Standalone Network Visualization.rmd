@@ -5,7 +5,7 @@ output: html_document
 ---
 
 ```{r, echo=FALSE}
-setwd("C:\\Dropbox (Personal)\\Comp Sci\\UROP\\R")
+setwd("C:\\Dropbox (Personal)\\Comp Sci\\UROP\\R\\SMILE Network Visualization\\")
 
 source("network_vis.R")
 network_vis(Null)

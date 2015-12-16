@@ -9,14 +9,10 @@ network_vis <- function(dataset) {
           column(4, textInput('startLine', 'Line Numbers (Comma Separated)')),
           column(4, radioButtons("indexIdentifier", label = "",
                                  choices = list("Line Index (from 1)" = 1, "Drug IDs" = 2), selected = 1)),
-          column(4, numericInput('numHits', 'Max number of similarities', 50, min=1))
+          column(4, numericInput('numHits', 'Max number of similarities', 15, min=1))
       ),
       forceNetworkOutput('network'),
       tableOutput('links')
-#       fluidRow(
-#         # h3(textOutput("nodes")),
-#         
-       # )
     ),
     
     server = function(input, output, session) {
@@ -26,7 +22,7 @@ network_vis <- function(dataset) {
       }
       
       inputtedNumbers <- reactive({ unlist(strsplit(input$startLine, ',', fixed=TRUE)) })
-      
+      maxSimilarities <- reactive({ as.numeric(input$numHits) })
       generator <- reactive({
         group <- 1
         nodes <<- matrix(nrow=0, ncol = 2)
@@ -45,31 +41,25 @@ network_vis <- function(dataset) {
         
         for(i in 1:length(drugIDs)) {
           file <- paste("E:\\results\\", drugIDs[i], ".txt", sep="")
-          # if(counter < 35) {
             data <- read.table(file, header=TRUE, sep="|", comment.char="")
             data$SMILE1 <- NULL
             data$SMILE2 <- NULL
             
             nodes[nrow(nodes)+1, ] <- c(strsplit(drugIDs[i], ".txt")[[1]], group)
             # nodes <<- rbind(nodes, c(strsplit(file, ".txt")[[1]], group))
-            
-            # group <- group+1
-            
+
             for(ii in 1:dim(data)[1]) {
-              if(ii < 300) {
+              if(ii < maxSimilarities()) {
                 
                 nodes <- rbind(nodes, c(data[ii, 2], group))
                 nodes <- nodes[match(unique(nodes$name), nodes$name),]
-                # print(c(which(nodes$name == data[ii, 1])[1]-1, which(nodes$name == data[ii, 2])[1]-1, data[ii, 3]))
                 links <- rbind(links, c(which(nodes$name == data[ii, 1])[1]-1, which(nodes$name == data[ii, 2])[1]-1, data[ii, 3]))
                 
-                #group<- group+1
               }
             }
             
             counter <- counter + 1
             print(counter)
-          # }
         }
         
         links <- data.frame(links)
