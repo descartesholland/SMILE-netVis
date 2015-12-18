@@ -9,7 +9,9 @@ network_vis <- function(dataset) {
           column(4, textInput('startLine', 'Line Numbers (Comma Separated)')),
           column(4, radioButtons("indexIdentifier", label = "",
                                  choices = list("Line Index (from 1)" = 1, "Drug IDs" = 2), selected = 1)),
-          column(4, numericInput('numHits', 'Max number of similarities', 15, min=1))
+          column(4, numericInput('numHits', 'Max number of similarities', 15, min=1)),
+          column(4, radioButtons('dupesEnabled', label = 'Render Duplicate Links', 
+                                 choices = list("Yes" = 1, "No" = 2), selected = 2))
       ),
       forceNetworkOutput('network'),
       tableOutput('links')
@@ -30,8 +32,10 @@ network_vis <- function(dataset) {
         colnames(nodes) <- list("name", "group")
         nodes <<- nodes[-c(1), ]
         
-        links <<- matrix(data=NA, ncol = 3)
-        colnames(links) <- list("id1", "id2", "Score")
+        masterLinks <<- matrix(data=NA, ncol = 3)
+        colnames(masterLinks) <- c("id1", "id2", "Score")
+        # links <- data.frame(links)
+        masterLinks <- masterLinks[-c(1), ]
         
         
         counter <- 0
@@ -44,31 +48,43 @@ network_vis <- function(dataset) {
             data <- read.table(file, header=TRUE, sep="|", comment.char="")
             data$SMILE1 <- NULL
             data$SMILE2 <- NULL
+            data <- data[order(-data[ , "Score"] ), ] #for most similar nodes
             
             nodes[nrow(nodes)+1, ] <- c(strsplit(drugIDs[i], ".txt")[[1]], group)
-            # nodes <<- rbind(nodes, c(strsplit(file, ".txt")[[1]], group))
-
-            for(ii in 1:dim(data)[1]) {
-              if(ii < maxSimilarities()) {
+             
+            nodes <- rbind(nodes, setNames(cbind(data.frame(data[1:maxSimilarities(), ]$id2, rep.int(1, maxSimilarities()))), c("name", "group")))
+            nodes <- nodes[match(unique(nodes$name), nodes$name),]
+            rownames(nodes) <- NULL
+            print(nodes)                 
+                  
+                generateLinks <- function(dataRow) {
+                  return(setNames(c(which(nodes$name == dataRow[1])[1]-1, which(nodes$name == dataRow[2])[1]-1, dataRow[3]), c("id1", "id2", "Score")))
+                }
                 
-                nodes <- rbind(nodes, c(data[ii, 2], group))
-                nodes <- nodes[match(unique(nodes$name), nodes$name),]
-                links <- rbind(links, c(which(nodes$name == data[ii, 1])[1]-1, which(nodes$name == data[ii, 2])[1]-1, data[ii, 3]))
-                
-              }
-            }
+            links <- data.frame(data=t(apply(data[1:maxSimilarities(),], 1, generateLinks)))
+            colnames(links) <- list("id1", "id2", "Score")
+            rownames(links) <- NULL
             
+            if(input$dupesEnabled == 2) {
+              links <- links[!duplicated(links[, c('id1', 'id2')]),]
+            }
+            masterLinks <- rbind(masterLinks, links)
+            print("masterLinks")
+            print(masterLinks)
+            # print (links)
             counter <- counter + 1
             print(counter)
         }
         
-        links <- data.frame(links)
-        links <- links[-c(1), ]
         
-        write.table(links, file="links.txt", append=FALSE, row.names=TRUE, col.names=TRUE)
+        
+        write.table(masterLinks, file="links.txt", append=FALSE, row.names=TRUE, col.names=TRUE)
         write.table(nodes, file="nodes.txt", append=FALSE, row.names=TRUE, col.names=TRUE)
         
-        forceNetwork(Links = links, Nodes = nodes, Source = "id1", Target="id2", Value = "Score", NodeID = "name", Group = "group", opacity=0.8, zoom=TRUE) #%>%
+        print('final')
+        print(nodes)
+        print(masterLinks)
+        forceNetwork(Links = data.frame(masterLinks), Nodes = nodes, Source = "id1", Target="id2", Value = "Score", NodeID = "name", Group = "group", opacity=0.8, zoom=TRUE) #%>%
       })
       
       
